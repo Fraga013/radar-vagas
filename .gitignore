@@ -1,18 +1,19 @@
 # Java / Maven
 target/
 *.class
-*.jar
-!.mvn/wrapper/maven-wrapper.jar
 
 # Python
 __pycache__/
 *.pyc
 .venv/
 
-# Dados coletados (nao versionar: sao grandes e mudam todo dia)
+# Dados coletados: grandes, mudam todo dia e nao pertencem ao repo.
+# Regra por caminho, NAO por extensao - `*.json` generico ja barrou a massa
+# de teste uma vez e quebraria a CI silenciosamente.
 dados/
-*.json
-!package.json
+brutas.json
+detalhes.json
+vagas.json
 
 # IDE
 .idea/
