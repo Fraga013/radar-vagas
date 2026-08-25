@@ -1,0 +1,23 @@
+# Java / Maven
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Dados coletados (nao versionar: sao grandes e mudam todo dia)
+dados/
+*.json
+!package.json
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Ambiente
+.env

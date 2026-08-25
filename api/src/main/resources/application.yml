@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: radar-vagas-api
+
+  datasource:
+    # Os defaults casam com o docker-compose.yml da raiz do projeto.
+    # Em producao viriam de variavel de ambiente - nunca commite senha real.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/radar}
+    username: ${DB_USER:radar}
+    password: ${DB_PASS:radar}
+
+  jpa:
+    hibernate:
+      # ddl-auto=update serve para projeto de portfolio e ambiente local.
+      # Em producao seria Flyway ou Liquibase - esta trocado de proposito e
+      # esta justificado no README, secao "Decisoes e trade-offs".
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    br.com.claytonfraga.radarvagas: INFO
