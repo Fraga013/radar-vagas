@@ -6,22 +6,54 @@ on:
   pull_request:
 
 jobs:
-  build:
+  testes-h2:
+    name: Testes rapidos (H2)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Configurar JDK 21
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-
       - name: Build e testes
         working-directory: ./api
         run: mvn -B clean verify
 
+  testes-postgres:
+    name: Testes contra PostgreSQL real
+    runs-on: ubuntu-latest
+    # Roda a MESMA suite contra Postgres. Existe porque dois bugs passaram pelo
+    # H2 e so apareceram em producao: parametro nulo sem cast e @Lob virando
+    # large object. Sem este job, eles voltariam sem ninguem perceber.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: radar
+          POSTGRES_USER: radar
+          POSTGRES_PASSWORD: radar
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U radar -d radar"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+      - name: Testes com Postgres
+        working-directory: ./api
+        env:
+          TEST_DB_URL: jdbc:postgresql://localhost:5432/radar
+          TEST_DB_USER: radar
+          TEST_DB_PASS: radar
+        run: mvn -B clean verify
       - name: Publicar resultado dos testes
         if: always()
         uses: actions/upload-artifact@v4

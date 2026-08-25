@@ -1,15 +1,20 @@
-# Perfil de teste: H2 em memoria.
-# Assim `mvn test` e a CI do GitHub rodam sem precisar de Docker nem Postgres.
+# Config de teste. Por padrao usa H2 em memoria, para `mvn test` local ser rapido
+# e nao exigir Docker. Na CI, as variaveis TEST_DB_* apontam para um Postgres de
+# verdade e a MESMA suite roda contra ele.
+#
+# Isso existe porque dois bugs passaram pelo H2 e so apareceram em Postgres:
+#   - parametro nulo sem cast: "function lower(bytea) does not exist"
+#   - @Lob virando large object: "Objetos Grandes nao podem ser usados em auto-commit"
+# Testar so no banco errado da falsa sensacao de seguranca.
+#
+# ATENCAO: este arquivo SUBSTITUI o application.yml de main no classpath de
+# teste - nao faz merge. Propriedade que os testes precisam tem de estar aqui.
 spring:
   datasource:
-    url: jdbc:h2:mem:radar;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
+    url: ${TEST_DB_URL:jdbc:h2:mem:radar;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
+    username: ${TEST_DB_USER:sa}
+    password: ${TEST_DB_PASS:}
   jpa:
-    # Atencao: este arquivo SUBSTITUI o application.yml de main no classpath de
-    # teste - ele nao faz merge. Toda propriedade que os testes precisam tem de
-    # estar repetida aqui.
     open-in-view: false
     hibernate:
       ddl-auto: create-drop

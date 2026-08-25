@@ -8,7 +8,8 @@ de risco de fraude.
 > abrir três sites por dia, ler descrições longas e descobrir no fim que a vaga
 > "júnior" pedia cinco anos de experiência. Hoje uso o Radar todo dia.
 
-**Status:** semana 1 concluída — API sobe, ingere e consulta. 6 testes verdes.
+**Status:** semana 1 concluída — API sobe, ingere 1068 vagas reais e responde. 8 testes,
+verdes em H2 **e** em PostgreSQL.
 
 ---
 
@@ -88,12 +89,24 @@ Usar isso como PK torna a ingestão idempotente: rodar duas vezes no mesmo dia n
 duplica nada, porque `save()` vira upsert. A alternativa — id autoincremento mais
 uma coluna única — exigiria uma consulta a mais por vaga sem benefício.
 
-**Por que H2 nos testes e Postgres em produção.** Testes que exigem Docker rodando
-são testes que ninguém roda. Com H2 em memória, `mvn test` leva segundos e a CI do
-GitHub não precisa de serviço externo. O risco é real e conhecido: H2 não é
-Postgres, então diferenças de SQL só aparecem em integração. Por isso o modo
-`MODE=PostgreSQL` e por isso o `docker compose up` continua sendo o teste de
-verdade antes de qualquer merge.
+**Por que H2 nos testes — e por que isso não bastou.** Comecei com H2 em memória
+porque teste que exige Docker é teste que ninguém roda: `mvn test` leva segundos e
+a CI não precisa de serviço externo. Documentei o risco de o H2 não ser Postgres.
+
+**O risco se materializou na primeira subida real, duas vezes seguidas:**
+
+1. `function lower(bytea) does not exist` — o PostgreSQL não infere o tipo de um
+   bind parameter nulo, assume `bytea` e o `lower()` quebra. Corrigido com
+   `cast(:param as String)` na query.
+2. `Objetos Grandes não podem ser usados em auto-commit` — `@Lob` numa `String`
+   vira *large object* (`oid`) no Postgres, que só é legível dentro de transação.
+   A API quebrava ao serializar a resposta. Corrigido removendo o `@Lob`.
+
+O H2 aceita os dois sem reclamar. Por isso a CI hoje roda **a mesma suíte duas
+vezes**: uma em H2 (rápida) e outra contra um Postgres de verdade, em service
+container. Os dois casos viraram testes de regressão nomeados — e eu verifiquei
+que eles falham quando os bugs são reintroduzidos, porque teste que não pega o
+bug que motivou sua existência é decoração.
 
 **Por que `open-in-view: false`.** Com o default do Spring Boot (ligado), a sessão
 do Hibernate fica aberta durante a serialização da resposta e consultas podem
@@ -111,6 +124,7 @@ revisável. Está assim de propósito e documentado, em vez de escondido.
 - [x] API REST com filtros — *semana 1*
 - [x] Ingestão idempotente do JSON do coletor — *semana 1*
 - [x] Teste de integração da cadeia inteira, com massa real — *semana 1*
+- [x] Testes de regressão contra Postgres real — *semana 1*
 - [ ] CI verde no GitHub Actions — *semana 2*
 - [ ] Detector de júnior disfarçado e score de fraude — *semana 2*
 - [ ] Painel de tendências do mercado — *semana 4*

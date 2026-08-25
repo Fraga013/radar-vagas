@@ -73,6 +73,37 @@ class IngestIntegrationTest {
     }
 
     @Test
+    @DisplayName("REGRESSAO: busca por termo funciona (parametro nulo exige cast no Postgres)")
+    void buscaPorTermoNaoQuebraNoPostgres() throws Exception {
+        ingestService.ingerir(fixture());
+
+        // Exercita o `lower(concat('%', :termo, '%'))` E os outros dois
+        // parametros nulos na mesma query. Sem `cast(:param as String)`, o
+        // PostgreSQL nao consegue inferir o tipo do bind nulo, assume bytea e
+        // quebra com "function lower(bytea) does not exist". O H2 aceita.
+        List<Vaga> achadas = service.buscar(null, null, "desenvolvedor");
+
+        assertEquals(1, achadas.size());
+        assertTrue(achadas.get(0).getTitulo().toLowerCase().contains("desenvolvedor"));
+    }
+
+    @Test
+    @DisplayName("REGRESSAO: descricao e legivel fora de transacao (nao pode ser @Lob no Postgres)")
+    void descricaoLegivelForaDeTransacao() throws Exception {
+        ingestService.ingerir(fixture());
+
+        // Aqui a entidade ja voltou destacada da sessao - e exatamente o que
+        // acontece quando o controller serializa a resposta em JSON. Com @Lob,
+        // o PostgreSQL trata a coluna como large object (oid) e a leitura
+        // estoura com "Objetos Grandes nao podem ser usados em auto-commit".
+        List<Vaga> todas = service.buscar(null, null, null);
+
+        String descricao = todas.get(0).getDescricao();
+        assertNotNull(descricao, "a massa de teste precisa ter descricao, senao este teste nao prova nada");
+        assertFalse(descricao.isBlank());
+    }
+
+    @Test
     @DisplayName("sem filtro nenhum, devolve tudo que nao expirou")
     void semFiltroDevolveTudo() throws Exception {
         ingestService.ingerir(fixture());

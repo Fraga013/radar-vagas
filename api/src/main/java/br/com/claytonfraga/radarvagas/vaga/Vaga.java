@@ -41,7 +41,16 @@ public class Vaga {
     @Column(name = "publicado_em")
     private LocalDate publicadoEm;
 
-    @Lob
+    /**
+     * SEM @Lob de proposito. Com @Lob o PostgreSQL trata a coluna como Large
+     * Object (oid), que so pode ser lido dentro de uma transacao explicita - a
+     * leitura pela API quebrava com "Objetos Grandes nao podem ser usados no
+     * modo auto-commit". O H2 dos testes aceita @Lob sem reclamar, entao o bug
+     * so apareceu contra Postgres de verdade.
+     *
+     * `columnDefinition = "text"` ja da capacidade ilimitada no Postgres, que e
+     * tudo que a descricao precisa.
+     */
     @Column(columnDefinition = "text")
     private String descricao;
 
