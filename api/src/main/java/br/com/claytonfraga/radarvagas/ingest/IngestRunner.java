@@ -2,6 +2,7 @@ package br.com.claytonfraga.radarvagas.ingest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -10,17 +11,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Dispara a ingestao na subida, quando a propriedade `radar.ingest.file` aponta
- * para um JSON do coletor:
+ * Dispara a ingestao na subida quando `radar.ingest.file` aponta para um JSON
+ * do coletor. Sem a propriedade, a aplicacao sobe e nao faz nada.
  *
- *     java -jar app.jar --radar.ingest.file=/caminho/brutas.json
+ * Ler por @Value e nao por ApplicationArguments e proposital: assim a mesma
+ * propriedade funciona nos tres modos, gracas ao relaxed binding do Spring:
  *
- * Sem a propriedade, a aplicacao sobe normalmente e nao faz nada - por isso
- * este runner nao atrapalha os testes nem o `docker compose up` do dia a dia.
+ *   linha de comando  java -jar app.jar --radar.ingest.file=/tmp/brutas.json
+ *   variavel de ambiente  RADAR_INGEST_FILE=/dados/brutas.json   (Docker)
+ *   application.yml   radar.ingest.file: /dados/brutas.json
  *
- * Por que uma propriedade e nao um endpoint POST: receber um caminho do sistema
- * de arquivos por HTTP num repositorio publico e convite a path traversal.
- * A ingestao e uma tarefa de operacao, nao uma rota da API.
+ * A primeira versao lia so os argumentos e por isso nao funcionava dentro do
+ * container - que e exatamente onde ela precisa funcionar.
+ *
+ * Por que uma propriedade e nao um endpoint POST: receber caminho do sistema
+ * de arquivos por rota HTTP publica e convite a path traversal. Ingestao e
+ * tarefa de operacao, nao rota de API.
  */
 @Component
 public class IngestRunner implements ApplicationRunner {
@@ -28,22 +34,25 @@ public class IngestRunner implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(IngestRunner.class);
 
     private final IngestService service;
+    private final String arquivoConfigurado;
 
-    public IngestRunner(IngestService service) {
+    public IngestRunner(IngestService service,
+                        @Value("${radar.ingest.file:}") String arquivoConfigurado) {
         this.service = service;
+        this.arquivoConfigurado = arquivoConfigurado;
     }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        var valores = args.getOptionValues("radar.ingest.file");
-        if (valores == null || valores.isEmpty()) {
+        if (arquivoConfigurado == null || arquivoConfigurado.isBlank()) {
             return;
         }
-        Path arquivo = Path.of(valores.get(0));
+        Path arquivo = Path.of(arquivoConfigurado);
         if (!Files.isReadable(arquivo)) {
-            log.warn("radar.ingest.file aponta para arquivo ilegivel: {}", arquivo);
+            log.warn("radar.ingest.file aponta para arquivo ilegivel, ingestao ignorada: {}", arquivo);
             return;
         }
+        log.info("Ingerindo {}", arquivo);
         int n = service.ingerir(arquivo);
         log.info("Ingestao concluida: {} vagas", n);
     }

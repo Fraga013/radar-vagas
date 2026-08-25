@@ -24,6 +24,11 @@ services:
       DB_URL: jdbc:postgresql://db:5432/radar
       DB_USER: radar
       DB_PASS: radar
+      # Se existir ./dados/brutas.json, a API ingere na subida.
+      # Se nao existir, sobe vazia e avisa no log - nao quebra.
+      RADAR_INGEST_FILE: /dados/brutas.json
+    volumes:
+      - ./dados:/dados:ro
     ports:
       - "8080:8080"
 
