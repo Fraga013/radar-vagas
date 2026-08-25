@@ -91,6 +91,7 @@ revisável. Está assim de propósito e documentado, em vez de escondido.
 ## Roadmap
 
 - [x] Coletor multi-fonte com normalização e deduplicação
+- [x] Análise de tendências reproduzível (`coletor/analise_mercado.py`)
 - [ ] API REST com filtros — *semana 1*
 - [ ] Testes JUnit + CI no GitHub Actions — *semana 2*
 - [ ] Detector de júnior disfarçado e score de fraude — *semana 2*
