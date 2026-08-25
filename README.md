@@ -8,7 +8,7 @@ de risco de fraude.
 > abrir três sites por dia, ler descrições longas e descobrir no fim que a vaga
 > "júnior" pedia cinco anos de experiência. Hoje uso o Radar todo dia.
 
-**Status:** em construção — semana 1 de 3. *(troque esta linha quando avançar)*
+**Status:** semana 1 concluída — API sobe, ingere e consulta. 6 testes verdes.
 
 ---
 
@@ -49,6 +49,17 @@ docker compose up          # sobe Postgres + API
 curl "localhost:8080/vagas?modalidade=remoto&senioridade=junior&q=java"
 ```
 
+Para carregar dados de uma coleta:
+
+```bash
+cd coletor
+python3 coletar_vagas.py buscar --termos "java,estagio,junior" --dias 30 > /tmp/brutas.json
+java -jar api/target/*.jar --radar.ingest.file=/tmp/brutas.json
+```
+
+A ingestão é **idempotente**: rodar o coletor duas vezes no mesmo dia não duplica
+nada, porque o id de origem (`linkedin:4456895688`) é a chave primária.
+
 Para rodar só os testes, sem Docker:
 
 ```bash
@@ -84,6 +95,11 @@ Postgres, então diferenças de SQL só aparecem em integração. Por isso o mod
 `MODE=PostgreSQL` e por isso o `docker compose up` continua sendo o teste de
 verdade antes de qualquer merge.
 
+**Por que `open-in-view: false`.** Com o default do Spring Boot (ligado), a sessão
+do Hibernate fica aberta durante a serialização da resposta e consultas podem
+disparar sem aparecer no serviço. Desligado, o código falha alto em vez de
+esconder N+1 — prefiro descobrir no teste a descobrir em produção.
+
 **Por que `ddl-auto: update`.** É adequado para portfólio e ambiente local, e é
 inadequado para produção — em produção seria Flyway, com migração versionada e
 revisável. Está assim de propósito e documentado, em vez de escondido.
@@ -92,8 +108,10 @@ revisável. Está assim de propósito e documentado, em vez de escondido.
 
 - [x] Coletor multi-fonte com normalização e deduplicação
 - [x] Análise de tendências reproduzível (`coletor/analise_mercado.py`)
-- [ ] API REST com filtros — *semana 1*
-- [ ] Testes JUnit + CI no GitHub Actions — *semana 2*
+- [x] API REST com filtros — *semana 1*
+- [x] Ingestão idempotente do JSON do coletor — *semana 1*
+- [x] Teste de integração da cadeia inteira, com massa real — *semana 1*
+- [ ] CI verde no GitHub Actions — *semana 2*
 - [ ] Detector de júnior disfarçado e score de fraude — *semana 2*
 - [ ] Painel de tendências do mercado — *semana 4*
 

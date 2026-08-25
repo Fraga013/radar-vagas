@@ -15,6 +15,10 @@ spring:
       # Em producao seria Flyway ou Liquibase - esta trocado de proposito e
       # esta justificado no README, secao "Decisoes e trade-offs".
       ddl-auto: update
+    # Desligado de proposito: com open-in-view ligado (o default do Spring Boot),
+    # a sessao do Hibernate fica aberta durante a serializacao da resposta e
+    # consultas podem disparar sem voce ver. Preferimos falhar alto.
+    open-in-view: false
     show-sql: false
     properties:
       hibernate:
